@@ -23,7 +23,7 @@ model_urls = {
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
     'resnet50': 'https://hangzh.s3.amazonaws.com/encoding/models/resnet50-25c4b509.zip',
     'resnet101': 'https://hangzh.s3.amazonaws.com/encoding/models/resnet101-2a57e44d.zip',
-    'resnet152': 'https://hangzh.s3.amazonaws.com/encoding/models/resnet152-0d43d698.zip'
+    'resnet152': 'https://retinal.oss-cn-huhehaote.aliyuncs.com/pretrained/resnet152-0d43d698.zip?OSSAccessKeyId=LTAIs8U3xtAy7Tjb&Expires=1578832851&Signature=2TqhzZV3mVEjXWhBbsljZ4ER%2BSw%3D'
 }
 
 
