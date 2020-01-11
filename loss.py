@@ -13,9 +13,10 @@ cross_entropy = nn.CrossEntropyLoss()
 
 def weighted_dice(output, target, type_weight='square'):
     # output [BS, 2, w, h], target [BS, w, h]
-    prediction = F.softmax(output, dim=1)[:, 1, :, :]
-    prediction = prediction.float()
-    
+#    prediction = F.softmax(output, dim=1)[:, 1, :, :]
+#    prediction = prediction.float()
+            
+    prediction = output
     ref_vol = target.sum(0)
     intersect = (target*prediction).sum(0)
     seg_vol = prediction.sum(0)
@@ -38,8 +39,15 @@ def weighted_dice(output, target, type_weight='square'):
     return 1 - dice
         
     
+def multi_dice(pred, target, class_num = 2):
+    pred = F.softmax(pred, dim=1).float()
+    pred_list = [pred[:, 0, :, :], pred[:, 1, :, :]]
+    target_list = [1-target, target]
     
-    
+    dice = 0
+    for i in range(class_num):
+        dice += weighted_dice(pred_list[i], target_list[i])
+    return dice/class_num
     
     
     

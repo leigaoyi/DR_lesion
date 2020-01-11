@@ -17,34 +17,67 @@ import cv2
 
 from loss import dice, cross_entropy
 from loss import focal_loss
-from loss import weighted_dice
+from loss import weighted_dice, multi_dice
 from loss import DiceLoss
 
 from data import DR_EX
 
 from torch.utils.data import DataLoader
 
-from models import UNet
+from models import UNet, FCN8
+from models import ENet, PSPNet
+
+from models import UperNet
+
+config_path = './config.json'
+config = json.load(open(config_path))
 
 
-data_dir = './data/images/'
-label_dir = './data/ground_truths/EX/'
 
-model_name = 'UNet'
-epoch_num = 1000
+data_dir = config['dataset']['train_data']
+label_dir = config['dataset']['train_label']
+
+model_name = config['trainer']['model_name']
+epoch_num = config['trainer']['epoch']
 device = torch.device('cuda:0')
+
+reuse_model = config['resume']['reuse']
+reuse_num = config['resume']['reuse_num']
+reuse_path = './checkpoints/{0}_{1}.pth'.format(model_name, reuse_num)
 
 
 DR_dataset = DR_EX(data_dir, label_dir)
 DR_loader = DataLoader(DR_dataset, batch_size=4, shuffle=True, num_workers=4)
 
-model = UNet(2, inchannels=3)
+if model_name == 'UNet':
+    model = UNet(2, in_channels=3)
+
+if model_name == 'FCN8':
+    model = FCN8(2)
+    
+if model_name == 'PSPNet':
+    model = PSPNet(2)
+    
+if model_name == 'UperNet':
+    model = UperNet(2)
+
+
+start_epoch = 0
+
+if reuse_model == True:
+    state_dict = torch.load(reuse_path)
+    model.load_state_dict(state_dict)
+    start_epoch = reuse_num
+    
+    print('Reuse model :', reuse_path)
+
 model.to(device)
 
 #loss_fn = torch.nn.MSELoss()
-loss_fn = weighted_dice
+#loss_fn = weighted_dice
 #loss_fn = cross_entropy
 #loss_fn = focal_loss
+loss_fn = multi_dice
 
 #optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -55,12 +88,14 @@ model.train()
 torch.set_grad_enabled(True)
 current_step = 0
 
-sample_data = cv2.imread('./tmp/sample_data.jpg')
-sample_data = sample_data/255.
-sample_data = np.transpose(sample_data, [2, 0, 1])[np.newaxis, ...]
-sample_data = torch.from_numpy(sample_data).to(device, dtype=torch.float)
+print('Train {0} begin!'.format(model_name))
 
-for i in range(epoch_num):
+#sample_data = cv2.imread('./tmp/sample_data.jpg')
+#sample_data = sample_data/255.
+#sample_data = np.transpose(sample_data, [2, 0, 1])[np.newaxis, ...]
+#sample_data = torch.from_numpy(sample_data).to(device, dtype=torch.float)
+
+for i in range(start_epoch, epoch_num):
     
     
     for idx, (data, label) in enumerate(DR_loader):
@@ -94,12 +129,12 @@ for i in range(epoch_num):
         data = data.to(device, dtype=torch.float)
         label = label.to(device, dtype=torch.long)
         
-        output = model(data)
-        #print(output.shape)
-        output_v = output.detach().cpu().numpy()
-        #print(np.argmax(output_v, axis=1))
-        #print(np.max(np.argmax(output_v, axis=1)))
+        #print(data.shape)
         
+        if model_name == 'PSPNet':
+            output = model(data)[0]
+        else:
+            output = model(data)
 
         optimizer.zero_grad()
         
@@ -112,7 +147,7 @@ for i in range(epoch_num):
         print('Epoch {0} Step {1} loss {2:.4f}'.format(i, current_step, loss_v.item()))
         #print('Output max {0} min {1} ; Label max {2} min{3} '.format(output_v.max(), output_v.min(), label.max(), label.min()))
         
-    if (i+1)%5 == 0:
+    if (i+1)%2 == 0:
         print('Saving model and parameters')
         save_path = './checkpoints/{0}_{1}.pth'.format(model_name, i+1)
         if not os.path.exists('./checkpoints/'):
@@ -122,14 +157,20 @@ for i in range(epoch_num):
             state_dict[key] = param.cpu()
         torch.save(state_dict, save_path)
         
-    if (i+1)%1 == 0:
-        sample_out = model(sample_data).detach().cpu()
-        sample_softmax = F.softmax(sample_out, dim=1).numpy()[:, 1, :, :]
-        #sample_out = np.argmax(sample_out, axis=1)
-        sample_out = np.squeeze(sample_softmax, axis=0)
-        #sample_out = np.transpose(sample_out, [1, 2, 0])
-        
-        cv2.imwrite('./tmp/sample_test_{0}.jpg'.format(i+1), sample_out*255.)
+#    if (i+1)%1 == 0:
+#        
+#        if model_name == 'PSPNet':
+#            print(sample_data.shape)
+#            sample_out = model(sample_data)
+#            #print('sample', sample_out)
+#        else:
+#            sample_out = model(sample_data).detach().cpu()
+#        sample_softmax = F.softmax(sample_out, dim=1).numpy()[:, 1, :, :]
+#        #sample_out = np.argmax(sample_out, axis=1)
+#        sample_out = np.squeeze(sample_softmax, axis=0)
+#        #sample_out = np.transpose(sample_out, [1, 2, 0])
+#        
+#        cv2.imwrite('./tmp/sample_test_{0}.jpg'.format(i+1), sample_out*255.)
 
 
 save_path = './checkpoints/{0}_last.pth'.format(model_name)

@@ -53,7 +53,7 @@ class DR_EX(Dataset):
         
         fig = fig/255.0
         
-        crop_num = 30
+        crop_num = 20
         fig_crop, label_crop = self._random_crop(fig, label, crop_num)
         fig_crop = np.asarray(fig_crop)
         label_crop = np.asarray(label_crop)
@@ -146,10 +146,12 @@ class DR_EX_test(Dataset):
         assert self.data_list[index][6:8] == self.label_list[index][6:8]
         
         fig = cv2.imread(fig_name)
+        b,g,r = cv2.split(fig)
+        fig_RGB = cv2.merge([r, g, b])
         label = cv2.imread(label_name)[..., 2]
         
         label = 1*(label>0.1)
-        fig = fig/255.0
+        fig = fig_RGB/255.0
         
         fig_crop, label_crop = self._paint_crop(fig, label)
         fig_shape = fig.shape[:2]

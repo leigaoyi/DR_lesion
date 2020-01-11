@@ -1,0 +1,33 @@
+{
+    "project_name":"DR_lesion",
+    
+    "dataset":{
+        "train_data":"./data/images/",
+        "train_label": "./data/ground_truths/EX/"
+    },
+    
+    "trainer":{
+        "model_name": "UperNet",
+        "epoch": 1000,
+        "type":"train"
+    },
+
+    "resume":{
+        "reuse": false,
+        "reuse_num" : 30
+    },
+    
+    "predict":{
+        "pred_model": "UperNet",
+        "reuse_epoch" : 32,
+        "data_dir": "./data/images/",
+        "label_dir": "./data/ground_truths/EX/",
+        "simple_type": true
+    },
+    
+    "evaluate":{
+        "eval_model" : "UperNet",
+        "eval_class" : "EX"
+    }
+
+}
