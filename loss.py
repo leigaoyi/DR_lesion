@@ -17,6 +17,8 @@ def weighted_dice(output, target, type_weight='square'):
 #    prediction = prediction.float()
             
     prediction = output
+    assert target.max().item() < 1.1
+    
     ref_vol = target.sum(0)
     intersect = (target*prediction).sum(0)
     seg_vol = prediction.sum(0)
@@ -25,6 +27,8 @@ def weighted_dice(output, target, type_weight='square'):
         weights = ref_vol ** 2
         weights = weights.float()
         torch.reciprocal(weights)
+    else:
+        weights = torch.ones_like(ref_vol)
     
     new_weights = torch.where(torch.isinf(weights), torch.zeros_like(weights), weights)
     #print(new_weights)
@@ -46,11 +50,23 @@ def multi_dice(pred, target, class_num = 2):
     
     dice = 0
     for i in range(class_num):
-        dice += weighted_dice(pred_list[i], target_list[i])
+        dice += weighted_dice(pred_list[i], target_list[i], type_weight='square')
+    return dice/class_num
+
+def multi_cc_dice(pred, target, class_num = 2):
+    pred = F.softmax(pred, dim=1).float()
+    pred_list = [pred[:, 0, :, :], pred[:, 1, :, :]]
+    target_list = [1-target, target]
+    
+    dice = 0
+    for i in range(class_num):
+        dice += weighted_dice(pred_list[i], target_list[i], type_weight='same')
     return dice/class_num
     
+def cc_cross_entropy(output, target, class_num=2):
+    pred = F.softmax(output, dim=1).float()
     
-    
+    return F.cross_entropy(pred, target)    
 
 
 def hard_cross_entropy(output, target, alpha=3.0):

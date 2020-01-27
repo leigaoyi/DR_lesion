@@ -2,31 +2,40 @@
     "project_name":"DR_lesion",
     
     "dataset":{
-        "train_data":"./data/images/",
-        "train_label": "./data/ground_truths/EX/"
+        "train_data":"./data/train/images/",
+        "train_label": "./data/train/labels/EX/",
+        "test_data" : "./data/images/",
+        "test_label" : "./data/ground_truths/EX/"
     },
     
     "trainer":{
-        "model_name": "UperNet",
-        "epoch": 1000,
-        "type":"train"
+        "model_name": "UNet",
+        "reuse": false,
+        "reuse_num": 2000,
+        "epoch": 200,
+        "type":"train",
+        "lr": 1e-2,
+        "batch_size": 4,
+        "train_mode" : "fast",
+        "device" : 0,
+        "crop_size" : 512,
+        "train_class" : "EX"
     },
 
-    "resume":{
-        "reuse": false,
-        "reuse_num" : 30
-    },
-    
+  "build": {
+      "crop_size" : 520
+  },
+
     "predict":{
-        "pred_model": "UperNet",
-        "reuse_epoch" : 32,
+        "pred_model": "UNet",
+        "reuse_step" : 58000,
         "data_dir": "./data/images/",
         "label_dir": "./data/ground_truths/EX/",
         "simple_type": true
     },
     
     "evaluate":{
-        "eval_model" : "UperNet",
+        "eval_model" : "UNet",
         "eval_class" : "EX"
     }
 

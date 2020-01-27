@@ -22,61 +22,58 @@ import numpy as np
 
 
 class DR_EX(Dataset):
-    def __init__(self, data_dir, label_dir, crop_size=128):
+    def __init__(self, data_dir, label_dir, train_mode,crop_size=128):
         super(DR_EX, self).__init__()
         self.data_dir = data_dir
         self.label_dir = label_dir
         self.crop_size = crop_size
+
+        self.train_mode = train_mode
         
         self.data_list = os.listdir(self.data_dir)
         self.label_list = os.listdir(self.label_dir)
         
         #print(self.label_list)
-        self.data_list = sorted(self.data_list, key = lambda str_n: int(str_n[6:8]))
-        self.label_list = sorted(self.label_list, key = lambda str_n: int(str_n[6:8]))
+        self.data_list = sorted(self.data_list, key = lambda str_n: int(str_n[:-4]))
+        self.label_list = sorted(self.label_list, key = lambda str_n: int(str_n[:-4]))
         
-        print(self.data_list)
-        print(self.label_list)
+#        print(self.data_list)
+#        print(self.label_list)
 
     def __len__(self):
-        return len(self.data_list)
+        if self.train_mode == 'fast':
+            return 3000
+        else:
+            return len(self.label_list)
         #return 4
     
     def __getitem__(self, index):
-        fig_name = os.path.join(self.data_dir, self.data_list[index])
+        fig_name = os.path.join(self.data_dir, self.label_list[index])
         label_name = os.path.join(self.label_dir, self.label_list[index])
-        assert self.data_list[index][6:8] == self.label_list[index][6:8]
+        assert self.data_list[index] == self.label_list[index]
         #fig = cv2.imread(fig_name)
         #label = cv2.imread(label_name)[..., 2]
         
         fig, label = self._enhance(fig_name, label_name)
         
         fig = fig/255.0
+        label = label/255.0
+        #print(fig.max(), label.max())
         
-        crop_num = 20
-        fig_crop, label_crop = self._random_crop(fig, label, crop_num)
-        fig_crop = np.asarray(fig_crop)
-        label_crop = np.asarray(label_crop)
-        label_crop = np.reshape(label_crop, [crop_num, self.crop_size, self.crop_size, 1])
+        fig_crop, label_crop = self._random_crop(fig, label)
         
         return fig_crop, label_crop
         
-    def _random_crop(self, fig, label, crop_num=10):
+    def _random_crop(self, fig, label):
         w, h, c = fig.shape
-        crop_fig_list = []
-        crop_label_list = []
+
+        x_start = np.random.randint(0, w-self.crop_size)
+        y_start = np.random.randint(0, h-self.crop_size)
         
-        for i in range(crop_num):
-            x_start = np.random.randint(0, w-self.crop_size)
-            y_start = np.random.randint(0, h-self.crop_size)
+        fig_crop = fig[x_start:(x_start+self.crop_size), y_start:(y_start+self.crop_size), :]
+        label_crop = label[x_start:(x_start+self.crop_size), y_start:(y_start+self.crop_size)]
             
-            fig_crop = fig[x_start:(x_start+self.crop_size), y_start:(y_start+self.crop_size)]
-            label_crop = label[x_start:(x_start+self.crop_size), y_start:(y_start+self.crop_size)]
-            
-            crop_fig_list.append(fig_crop)
-            crop_label_list.append(label_crop)
-            
-        return crop_fig_list, crop_label_list
+        return fig_crop, label_crop
     
     
     def _enhance(self, fig_path, annot_path):
@@ -140,10 +137,10 @@ class DR_EX_test(Dataset):
         return len(self.data_list)
     
     def __getitem__(self, index):
-        fig_name = os.path.join(self.data_dir, self.data_list[index])
+        fig_name = os.path.join(self.data_dir, self.label_list[index][:-7]+'.jpg')
         label_name = os.path.join(self.label_dir, self.label_list[index])
         
-        assert self.data_list[index][6:8] == self.label_list[index][6:8]
+        #assert self.data_list[index][6:8] == self.label_list[index][6:8]
         
         fig = cv2.imread(fig_name)
         b,g,r = cv2.split(fig)
